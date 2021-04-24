@@ -5,8 +5,46 @@
 </head>
 <body>
 
-<h1> Lichess tv embedded </h1>
+<!DOCTYPE html>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
 
+<html>
+<body>
+<p id = "user"> toBeUser </p>
+<p id = "fen"> toBeFEN </p>
+
+<script>
+var player = document.getElementById("user")
+var fen = document.getElementById("fen")
+
+// const fetch = require('node-fetch');
+const personalToken = '6MNDzV4skCVdzrDL'; 
+// hide this somehow
+
+var username = '...'
+var bulletRating = 0
+var blitzRating = 0
+
+// [username,bulletRating,blitzRating] 
+var account = fetch('https://lichess.org/api/account', {
+    headers: {
+      'Authorization': 'Bearer ' + personalToken
+    }
+  })
+  .then(response => response.json())
+  .then(res => {
+     console.log(res);
+     return res
+  });
+
+account.then(res => player.innerHTML = "Username: " + res.username + "<br>Blitz: " + res.perfs.blitz.rating + "<br>Bullet: " + res.perfs.bullet.rating)
+
+account.then(res => fen.innerHTML = "<a href=\"" + res.playing + "\">Current Game link</a>",
+res => fen.innerHTML = "Not playing at the moment")
+</script>
+
+<h1> Lichess tv embedded </h1>
 
 <iframe src="https://lichess.org/tv/frame?theme=brown&bg=dark" style="width: 400px; height: 444px;" allowtransparency="true" frameborder="0"></iframe>
 <br>
