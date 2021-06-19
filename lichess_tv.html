@@ -39,6 +39,8 @@ var account = fetch('https://lichess.org/api/account', {
 
 account.then(res => player.innerHTML = "Username: " + res.username + "<br>Blitz: " + res.perfs.blitz.rating + "<br>Bullet: " + res.perfs.bullet.rating)
 
+console.log(account.then(res.playing));
+
 account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>",
 res => current.innerHTML = "No game atm")
 
