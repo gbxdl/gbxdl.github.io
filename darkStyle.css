@@ -10,5 +10,10 @@ p {
 }
 
 a {
-  color: white;
+  color: black;
+}
+
+button{
+   color: black;
+   background-color: white;
 }
