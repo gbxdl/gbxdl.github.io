@@ -5,12 +5,13 @@
 </head>
 <body>
 
-<!DOCTYPE html>
 <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
 <meta content="utf-8" http-equiv="encoding">
 
 <p id = "user"> toBeUser </p>
-<p id = "fen"> toBeFEN </p>
+<!-- <p id = "fen"> toBeFEN </p> -->
+
+<button id="currentGame"> Game </button>
 
 <script>
 var player = document.getElementById("user")
@@ -38,15 +39,23 @@ var account = fetch('https://lichess.org/api/account', {
 
 account.then(res => player.innerHTML = "Username: " + res.username + "<br>Blitz: " + res.perfs.blitz.rating + "<br>Bullet: " + res.perfs.bullet.rating)
 
-account.then(res => fen.innerHTML = "<a href=\"" + res.playing + "\">Current Game link</a>",
+account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>",
 res => fen.innerHTML = "Not playing at the moment")
+
+// should now get the game link and connect to the api that gives me the game. Then find a way of visualizing
+
+account.then(res => {
+   var url = res.playing
+   console.log(url)
+   console.log(url[20-26])
+})
 </script>
 
-<h1> Lichess tv embedded </h1>
+<!-- <h1> Lichess tv embedded </h1> -->
 
-<iframe src="https://lichess.org/tv/frame?theme=brown&bg=dark" style="width: 400px; height: 444px;" allowtransparency="true" frameborder="0"></iframe>
+<!-- <iframe src="https://lichess.org/tv/frame?theme=brown&bg=dark" style="width: 400px; height: 444px;" allowtransparency="true" frameborder="0"></iframe>
 <br>
-<iframe src="https://lichess.org/training/frame?theme=brown&bg=dark" style="width: 400px; height: 444px;" allowtransparency="true" frameborder="0"></iframe>
+<iframe src="https://lichess.org/training/frame?theme=brown&bg=dark" style="width: 400px; height: 444px;" allowtransparency="true" frameborder="0"></iframe> -->
 
 </body>
 </html>
