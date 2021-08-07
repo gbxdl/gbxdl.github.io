@@ -13,6 +13,8 @@
 
 <button id="currentGame"> No game </button>
 
+<p> Why no update? </p>
+
 <script>
 var player = document.getElementById("user")
 var fen = document.getElementById("fen")
@@ -39,21 +41,19 @@ var account = fetch('https://lichess.org/api/account', {
 
 account.then(res => player.innerHTML = "Username: " + res.username + "<br>Blitz: " + res.perfs.blitz.rating + "<br>Bullet: " + res.perfs.bullet.rating)
 
-account.then(res => console.log(res.playing))
-console.log(account.then(res => res.playing != "undefined"))
+console.log(account.then(res => res.id))
 
-if(account.then(res => res.playing)!="undefined"){
+if(account.then(res => res.playing)!=true){
    account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>",
    res => current.innerHTML = "No game atm")
-};
+} else{
+      console.log("got to else")
+}
 
 
 // should now get the game link and connect to the api that gives me the game. Then find a way of visualizing
-account.then(res => {
-   var url = res.playing
-   console.log(url)
-   console.log(url[20-26])
-})
+
+
 </script>
 
 <!-- <h1> Lichess tv embedded </h1> -->
