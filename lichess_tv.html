@@ -11,6 +11,10 @@
 <p id = "user"> toBeUser </p>
 <!-- <p id = "fen"> toBeFEN </p> -->
 
+<!-- This is what the javascript should somehow change -->
+<p> Current position: </p>
+<img id="position" width="400" src="http://www.fen-to-image.com/image/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" >
+
 <p> Wanna watch? </p>
 <button id="currentGame"> No game </button>
 
@@ -35,7 +39,15 @@ var account = fetch('https://lichess.org/api/account', {
   })
   .then(response => response.json())
   .then(res => {
-     // console.log(res);
+     return res
+  });
+var game = fetch('https://lichess.org/api/account/playing', {
+    headers: {
+      'Authorization': 'Bearer ' + personalToken
+    }
+  })
+  .then(response => response.json())
+  .then(res => {
      return res
   });
 
@@ -46,10 +58,25 @@ account.then( res =>
   // account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>")
   {
     if(res.playing != undefined){
-      account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>")
+      account.then(res => 
+        currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>"
+      )
+      game.then( g =>
+        {
+          console.log(g.nowPlaying[0].fen)
+          document.getElementById("position").src=("http://www.fen-to-image.com/image/" + g.nowPlaying[0].fen)
+        }
+      )
+      //get FEN from lichess api, didn't find yet, can get moves so that's enough in theory.
     } else{
       account.then(res => currentGame.innerHTML = "No game at the moment")
     }
+  }
+)
+
+game.then( res =>
+  {
+    console.log(res.nowPlaying[0].fen)
   }
 )
 
