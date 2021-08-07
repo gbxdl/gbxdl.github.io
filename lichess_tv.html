@@ -63,11 +63,12 @@ account.then
         currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>"
       }
     )
-      game.then( game =>
-        {
-          document.getElementById("position").src=("http://www.fen-to-image.com/image/" + game.nowPlaying[0].fen)
-        }
-      )
+    game.then
+    ( game =>
+      {
+        document.getElementById("position").src=("http://www.fen-to-image.com/image/" + game.nowPlaying[0].fen)
+      }
+    )
     } 
     else
     {
