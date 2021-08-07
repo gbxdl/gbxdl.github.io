@@ -2,6 +2,7 @@
 <html>
 <head>
   <link rel="stylesheet" href="darkStyle.css">
+  <meta http-equiv="refresh" content="5">
 </head>
 <body>
 
@@ -53,7 +54,6 @@ var game = fetch('https://lichess.org/api/account/playing', {
 
 account.then(res => player.innerHTML = "Username: " + res.username + "<br>Blitz: " + res.perfs.blitz.rating + "<br>Bullet: " + res.perfs.bullet.rating)
 
-
 account.then( res => 
   // account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>")
   {
@@ -61,22 +61,15 @@ account.then( res =>
       account.then(res => 
         currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>"
       )
-      game.then( g =>
+      game.then( game =>
         {
-          console.log(g.nowPlaying[0].fen)
-          document.getElementById("position").src=("http://www.fen-to-image.com/image/" + g.nowPlaying[0].fen)
+          document.getElementById("position").src=("http://www.fen-to-image.com/image/" + game.nowPlaying[0].fen)
         }
       )
       //get FEN from lichess api, didn't find yet, can get moves so that's enough in theory.
     } else{
       account.then(res => currentGame.innerHTML = "No game at the moment")
     }
-  }
-)
-
-game.then( res =>
-  {
-    console.log(res.nowPlaying[0].fen)
   }
 )
 
