@@ -17,3 +17,8 @@ button{
    color: black;
    background-color: white;
 }
+
+table.chess { border: 1px solid black; margin: 2px; font-size: xx-large}
+table.chess td { width: 1.5em; height: 1.5em; padding: 0; margin: 1em; vertical-align: middle; text-align: center }
+table.chess tr td { background: #F2E0CB }
+table.chess tr:nth-child(odd) td:nth-child(even), table.chess tr:nth-child(even) td:nth-child(odd)  { background: #C4AA8B }
