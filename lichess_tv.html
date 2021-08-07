@@ -12,7 +12,7 @@
 <p id = "user"> toBeUser </p>
 
 <p> Current position: </p>
-<img id="position" width="400" src="http://www.fen-to-image.com/image/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" >
+<img id="position" src="http://www.fen-to-image.com/image/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" >
 
 <p> Wanna watch? </p>
 <button id="currentGame"> Current game </button>
@@ -66,7 +66,7 @@ account.then
     game.then
     ( game =>
       {
-        document.getElementById("position").src=("http://www.fen-to-image.com/image/" + game.nowPlaying[0].fen)
+        document.getElementById("position").src=("www.fen-to-image.com/image/" + game.nowPlaying[0].fen)
       }
     )
     } 
