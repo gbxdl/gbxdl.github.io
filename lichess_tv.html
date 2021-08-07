@@ -15,7 +15,7 @@
 <img id="position" width="400" src="http://www.fen-to-image.com/image/rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR" >
 
 <p> Wanna watch? </p>
-<button id="currentGame"> No game </button>
+<button id="currentGame"> Current game </button>
 
 <script>
 
@@ -57,7 +57,8 @@ account.then( res =>
   {
     if(res.playing != undefined){
       account.then(res => 
-        currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>"
+        // currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>"
+        document.getElementById("currentGame").href(res.playing)
       )
       game.then( game =>
         {
