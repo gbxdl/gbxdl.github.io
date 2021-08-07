@@ -11,11 +11,11 @@
 <p id = "user"> toBeUser </p>
 <!-- <p id = "fen"> toBeFEN </p> -->
 
+<p> Wanna watch? </p>
 <button id="currentGame"> No game </button>
 
-<p> Why no update? </p>
-
 <script>
+
 var player = document.getElementById("user")
 var fen = document.getElementById("fen")
 
@@ -35,20 +35,23 @@ var account = fetch('https://lichess.org/api/account', {
   })
   .then(response => response.json())
   .then(res => {
-     console.log(res);
+     // console.log(res);
      return res
   });
 
 account.then(res => player.innerHTML = "Username: " + res.username + "<br>Blitz: " + res.perfs.blitz.rating + "<br>Bullet: " + res.perfs.bullet.rating)
 
-console.log(account.then(res => res.id))
 
-if(account.then(res => res.playing)!=true){
-   account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>",
-   res => current.innerHTML = "No game atm")
-} else{
-      console.log("got to else")
-}
+account.then( res => 
+  // account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>")
+  {
+    if(res.playing != undefined){
+      account.then(res => currentGame.innerHTML = "<a href=\"" + res.playing + "\">Current Game</a>")
+    } else{
+      account.then(res => currentGame.innerHTML = "No game at the moment")
+    }
+  }
+)
 
 
 // should now get the game link and connect to the api that gives me the game. Then find a way of visualizing
