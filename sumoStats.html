@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sumo Top Division Rikishi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2em;
+        }
+
+        .rikishi-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1em;
+        }
+
+        .rikishi-table th,
+        .rikishi-table td {
+            border: 1px solid #ccc;
+            padding: 0.5em;
+            text-align: left;
+        }
+
+        .rikishi-table th {
+            background: #f0f0f0;
+        }
+
+        .rikishi-table td small {
+            color: #666;
+            font-size: 0.85em;
+            line-height: 1.3;
+        }
+
+        .rikishi-table td {
+            vertical-align: top;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sumo Top Division Rikishi</h1>
+    <div style="margin-bottom:2em;">
+        <label for="score-day-select">Select Day for Score:</label>
+        <select id="score-day-select"></select>
+    </div>
+    <div id="score-table-container" style="margin-bottom:2em;"></div>
+    <button id="toggle-panel">Day Results</button>
+    <div id="sumo-panel" style="display:none; margin-top:1em;">
+        <div>
+            <label for="basho-select">Select Basho:</label>
+            <select id="basho-select"></select>
+        </div>
+        <div>
+            <label for="day-select">Select Day:</label>
+            <select id="day-select"></select>
+        </div>
+        <div id="rikishi-container">
+            <!-- Rikishi table will be inserted here -->
+        </div>
+    </div>
+    <script src="sumo.js"></script>
+    <script>
+        // Helper: get YYYYMM for N basho back
+        function getRecentYearsBasho(years = 5) {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            const bashoMonths = [1, 3, 5, 7, 9, 11]
+            let bashoList = [];
+            for (let y = currentYear; y >= currentYear - years + 1; y--) {
+                for (let m of bashoMonths) {
+                    // Only include basho in the past or this month
+                    if (y > currentYear || (y === currentYear && m > currentMonth)) continue;
+                    bashoList.push({
+                        year: y,
+                        month: m,
+                        id: `${y}${m.toString().padStart(2, '0')}`
+                    });
+                }
+            }
+            return bashoList;
+        }
+        function getBashoLabel(basho) {
+            const monthLabels = ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'];
+            const idx = [1, 3, 5, 7, 9, 11].indexOf(basho.month);
+            return idx !== -1 ? `${basho.year} ${monthLabels[idx]}` : `${basho.year} Invalid`;
+        }
+        function populateBashoDropdown(bashoSelect, bashoList) {
+            bashoSelect.innerHTML = '';
+            bashoList.forEach(basho => {
+                const opt = document.createElement('option');
+                opt.value = basho.id;
+                opt.textContent = getBashoLabel(basho);
+                bashoSelect.appendChild(opt);
+            });
+        }
+        function populateDays(daySelect) {
+            daySelect.innerHTML = '';
+            for (let d = 1; d <= 15; d++) {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = `Day ${d}`;
+                daySelect.appendChild(opt);
+            }
+        }
+        // Panel open/close logic
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleBtn = document.getElementById('toggle-panel');
+            const panel = document.getElementById('sumo-panel');
+            toggleBtn.addEventListener('click', function () {
+                if (panel.style.display === 'none') {
+                    panel.style.display = '';
+                    toggleBtn.textContent = 'Hide Day Results';
+                } else {
+                    panel.style.display = 'none';
+                    toggleBtn.textContent = 'Day Results';
+                }
+            });
+            // Set initial state
+            panel.style.display = 'none';
+            toggleBtn.textContent = 'Day Results';
+        });
+        // Sumo panel logic
+        function initSumoPanel() {
+            const rikishiContainer = document.getElementById('rikishi-container');
+            const bashoSelect = document.getElementById('basho-select');
+            const daySelect = document.getElementById('day-select');
+            const bashoList = getRecentYearsBasho(5);
+            populateBashoDropdown(bashoSelect, bashoList);
+            populateDays(daySelect);
+            // Default to July 2025, Day 1 if present
+            bashoSelect.value = '202507';
+            daySelect.value = '1';
+            function updateTable() {
+                fetchAndDisplayRikishi(bashoSelect, daySelect, rikishiContainer);
+            }
+            bashoSelect.addEventListener('change', updateTable);
+            daySelect.addEventListener('change', updateTable);
+            updateTable();
+        }
+        // Wait for DOMContentLoaded, then initialize sumo panel logic
+        document.addEventListener('DOMContentLoaded', function () {
+            // Panel logic already set up above
+            // Only initialize sumo panel if opened
+            const panel = document.getElementById('sumo-panel');
+            const toggleBtn = document.getElementById('toggle-panel');
+            let initialized = false;
+            toggleBtn.addEventListener('click', function () {
+                if (panel.style.display === '' && !initialized) {
+                    initSumoPanel();
+                    initialized = true;
+                }
+            });
+        });
+
+        // --- AGGREGATE SCORE TABLE LOGIC ---
+        function populateScoreDaySelector() {
+            const scoreDaySelect = document.getElementById('score-day-select');
+            scoreDaySelect.innerHTML = '';
+            for (let d = 1; d <= 15; d++) {
+                const opt = document.createElement('option');
+                opt.value = d;
+                opt.textContent = `Day ${d}`;
+                scoreDaySelect.appendChild(opt);
+            }
+            scoreDaySelect.value = '13';
+        }
+        async function fetchAndShowScores(upToDay = 13) {
+            const container = document.getElementById('score-table-container');
+            container.innerHTML = 'Loading scores...';
+            try {
+                // Fetch all days 1-upToDay in parallel
+                const dayPromises = [];
+                for (let d = 1; d <= upToDay; d++) {
+                    dayPromises.push(fetch(`https://sumo-api.com/api/basho/202507/torikumi/makuuchi/${d}`).then(r => r.json()));
+                }
+                const allData = await Promise.all(dayPromises);
+                // Helper: parse rank string to get rank type and number
+                function parseRank(rank) {
+                    if (!rank) return { type: '', num: 0 };
+                    const cleaned = rank.trim().replace(/\s+/g, ' ');
+                    const m = cleaned.match(/(Yokozuna|Ozeki|Sekiwake|Komusubi|Maegashira|Juryo)\s*(\d*)/i);
+                    if (!m) return { type: '', num: 0 };
+
+                    const type = m[1];
+                    const num = parseInt(m[2] || '1', 10);
+
+                    // Normalize sanyaku ranks to remove numbers
+                    if (type === 'Yokozuna' || type === 'Ozeki' || type === 'Sekiwake' || type === 'Komusubi') {
+                        return { type: type, num: 0 };
+                    }
+
+                    return { type: type, num: num };
+                }
+                // Hardcoded rank mapping: Yokozuna 1, Ozeki 1, Sekiwake 1, Komusubi 1, Maegashira 1-17, Juryo 1-14
+                const hardcodedRanks = [];
+                hardcodedRanks.push('Yokozuna 1');
+                hardcodedRanks.push('Ozeki 1');
+                hardcodedRanks.push('Sekiwake 1');
+                hardcodedRanks.push('Komusubi 1');
+                for (let i = 1; i <= 17; i++) hardcodedRanks.push(`Maegashira ${i}`);
+                for (let i = 1; i <= 14; i++) hardcodedRanks.push(`Juryo ${i}`);
+                const hardcodedRankMapping = {};
+                hardcodedRanks.forEach((key, idx) => { hardcodedRankMapping[key] = idx + 1; });
+                function getRankValue(rank) {
+                    if (!rank || !rank.type) return 1000;
+
+                    // For sanyaku ranks, use the original numbered keys
+                    if (rank.type === 'Yokozuna' || rank.type === 'Ozeki' || rank.type === 'Sekiwake' || rank.type === 'Komusubi') {
+                        const key = `${rank.type} 1`;
+                        return hardcodedRankMapping[key] || 1000;
+                    }
+
+                    // For Maegashira and Juryo, use the actual number
+                    const key = `${rank.type} ${rank.num}`;
+                    return hardcodedRankMapping[key] || 1000;
+                }
+
+                function getRankMultiplier(rank) {
+                    if (!rank || !rank.type) return 1.0;
+
+                    if (rank.type === 'Yokozuna' || rank.type === 'Ozeki') {
+                        return 1.0;
+                    } else if (rank.type === 'Sekiwake' || rank.type === 'Komusubi') {
+                        return 1.1;
+                    } else if (rank.type === 'Maegashira') {
+                        if (rank.num >= 1 && rank.num <= 5) {
+                            return 1.2;
+                        } else if (rank.num >= 6 && rank.num <= 10) {
+                            return 1.3;
+                        } else if (rank.num >= 11 && rank.num <= 15) {
+                            return 1.4;
+                        } else if (rank.num >= 16 && rank.num <= 17) {
+                            return 1.5;
+                        }
+                    }
+                    return 1.0;
+                }
+                const rikishi = {};
+                function addRikishi(id, shikona, rank) {
+                    if (!rikishi[id]) rikishi[id] = {
+                        shikona,
+                        rank: rank,
+                        score: 0,
+                        wins: 0,
+                        matches: 0,
+                        upsetWins: 0,
+                        upsetLosses: 0,
+                        upsetDetails: [],
+                        bonusPoints: 0,
+                        bonusDetails: []
+                    };
+                }
+                let yushoWinners = new Set();
+                let specialPrizeWinners = new Set();
+                const upsets = [];
+                allData.forEach((data, dayIdx) => {
+                    (data.yusho || []).forEach(y => yushoWinners.add(y.rikishiId));
+                    (data.specialPrizes || []).forEach(p => specialPrizeWinners.add(p.rikishiId));
+                    (data.torikumi || []).forEach(bout => {
+                        if (!bout.eastId || !bout.westId || (bout.winnerId !== bout.eastId && bout.winnerId !== bout.westId)) {
+                            return;
+                        }
+                        addRikishi(bout.eastId, bout.eastShikona, bout.eastRank);
+                        addRikishi(bout.westId, bout.westShikona, bout.westRank);
+                        rikishi[bout.eastId].matches++;
+                        rikishi[bout.westId].matches++;
+                        // Win
+                        rikishi[bout.winnerId].score += 1;
+                        rikishi[bout.winnerId].wins++;
+                        // Kinboshi
+                        const eastRank = parseRank(bout.eastRank);
+                        const westRank = parseRank(bout.westRank);
+                        if (
+                            (eastRank.type === 'Yokozuna' && bout.winnerId === bout.westId && westRank.type === 'Maegashira') ||
+                            (westRank.type === 'Yokozuna' && bout.winnerId === bout.eastId && eastRank.type === 'Maegashira')
+                        ) {
+                            rikishi[bout.winnerId].score += 2;
+                            rikishi[bout.winnerId].bonusPoints += 2;
+                            rikishi[bout.winnerId].bonusDetails.push({
+                                type: 'kinboshi',
+                                points: 2,
+                                day: dayIdx + 1,
+                                opponent: eastRank.type === 'Yokozuna' ? bout.eastShikona : bout.westShikona
+                            });
+                        }
+                        // Upset bonus/penalty
+                        const eastValue = getRankValue(eastRank);
+                        const westValue = getRankValue(westRank);
+                        let favoriteId, underdogId, diff, favoriteShikona, underdogShikona, favoriteRank, underdogRank;
+                        if (eastValue < westValue) {
+                            favoriteId = bout.eastId;
+                            underdogId = bout.westId;
+                            diff = westValue - eastValue;
+                            favoriteShikona = bout.eastShikona;
+                            underdogShikona = bout.westShikona;
+                            favoriteRank = bout.eastRank;
+                            underdogRank = bout.westRank;
+                        } else if (westValue < eastValue) {
+                            favoriteId = bout.westId;
+                            underdogId = bout.eastId;
+                            diff = eastValue - westValue;
+                            favoriteShikona = bout.westShikona;
+                            underdogShikona = bout.eastShikona;
+                            favoriteRank = bout.westRank;
+                            underdogRank = bout.eastRank;
+                        } else {
+                            favoriteId = null;
+                            underdogId = null;
+                            diff = 0;
+                        }
+                        if (diff >= 4 && favoriteId && underdogId && eastValue < 100 && westValue < 100) {
+                            if (bout.winnerId === underdogId) {
+                                const points = diff * 0.25;
+                                rikishi[underdogId].score += points;
+                                rikishi[favoriteId].score -= points;
+                                rikishi[underdogId].upsetWins++;
+                                rikishi[favoriteId].upsetLosses++;
+
+                                // Add upset details for both rikishi
+                                rikishi[underdogId].upsetDetails.push({
+                                    type: 'win',
+                                    opponent: favoriteShikona,
+                                    opponentRank: favoriteRank,
+                                    points: points,
+                                    day: dayIdx + 1
+                                });
+
+                                rikishi[favoriteId].upsetDetails.push({
+                                    type: 'loss',
+                                    opponent: underdogShikona,
+                                    opponentRank: underdogRank,
+                                    points: -points,
+                                    day: dayIdx + 1
+                                });
+
+                                upsets.push({
+                                    underdog: underdogShikona,
+                                    underdogRank: underdogRank,
+                                    favorite: favoriteShikona,
+                                    favoriteRank: favoriteRank,
+                                    points: points,
+                                    day: dayIdx + 1,
+                                    opponent: favoriteShikona
+                                });
+                            }
+                        }
+                    });
+                });
+                // Kachikoshi (8+ wins)
+                for (const id in rikishi) {
+                    if (rikishi[id].wins >= 8) {
+                        rikishi[id].score += 3;
+                        rikishi[id].bonusPoints += 3;
+                        rikishi[id].bonusDetails.push({
+                            type: 'kachikoshi',
+                            points: 3,
+                            day: 0, // Applied at end of basho
+                            description: `${rikishi[id].wins} wins`
+                        });
+                    }
+                }
+                // Yusho
+                for (const id of yushoWinners) {
+                    if (rikishi[id]) {
+                        rikishi[id].score += 5;
+                        rikishi[id].bonusPoints += 5;
+                        rikishi[id].bonusDetails.push({
+                            type: 'yusho',
+                            points: 5,
+                            day: 0, // Applied at end of basho
+                            description: 'Tournament winner'
+                        });
+                    }
+                }
+                // Special Prizes
+                for (const id of specialPrizeWinners) {
+                    if (rikishi[id]) {
+                        rikishi[id].score += 1.5;
+                        rikishi[id].bonusPoints += 1.5;
+                        rikishi[id].bonusDetails.push({
+                            type: 'special_prize',
+                            points: 1.5,
+                            day: 0, // Applied at end of basho
+                            description: 'Special prize'
+                        });
+                    }
+                }
+                // Only include rikishi who appear as Makuuchi in at least one bout
+                const makuuchiIds = new Set();
+                allData.forEach(data => {
+                    (data.torikumi || []).forEach(bout => {
+                        if (bout.division === 'Makuuchi') {
+                            makuuchiIds.add(bout.eastId);
+                            makuuchiIds.add(bout.westId);
+                        }
+                    });
+                });
+                // Output sorted by score
+                const sorted = Object.entries(rikishi)
+                    .filter(([id, r]) => makuuchiIds.has(Number(id)))
+                    .map(([id, r]) => r)
+                    .sort((a, b) => b.wins - a.wins);
+                let html = `<h2>Rikishi Scores for July 2025 Day 1-${upToDay}</h2>`;
+                html += '<table class="rikishi-table"><thead><tr><th>Shikona</th><th>Rank</th><th>Score</th><th>Wins</th><th>Bonus Points</th><th>Upsets</th><th>Echte Score</th></tr></thead><tbody>';
+                sorted.forEach(r => {
+                    let upsetText = '-';
+                    // Bonus points display
+                    let bonusText = '-';
+                    if (r.bonusPoints > 0) {
+                        bonusText = `${r.bonusPoints.toFixed(1)}`;
+                        if (r.bonusDetails && r.bonusDetails.length > 0) {
+                            bonusText += '<br><small>';
+                            r.bonusDetails.forEach(detail => {
+                                const dayText = detail.day > 0 ? ` (Day ${detail.day})` : '';
+                                const description = detail.description || detail.opponent || '';
+                                bonusText += `+${detail.points.toFixed(1)} ${detail.type}${dayText}${description ? ` - ${description}` : ''}<br>`;
+                            });
+                            bonusText += '</small>';
+                        }
+                    }
+
+                    // Upset display
+                    if (r.upsetWins > 0 || r.upsetLosses > 0) {
+                        upsetText = `${r.upsetWins}W/${r.upsetLosses}L`;
+                        if (r.upsetDetails && r.upsetDetails.length > 0) {
+                            upsetText += '<br><small>';
+                            r.upsetDetails.forEach(detail => {
+                                const sign = detail.points > 0 ? '+' : '';
+                                // Clean up opponent rank display
+                                let cleanOpponentRank = detail.opponentRank;
+                                const opponentRankParsed = parseRank(detail.opponentRank);
+                                if (opponentRankParsed.type === 'Yokozuna' || opponentRankParsed.type === 'Ozeki' || opponentRankParsed.type === 'Sekiwake' || opponentRankParsed.type === 'Komusubi') {
+                                    cleanOpponentRank = opponentRankParsed.type;
+                                }
+                                upsetText += `${detail.type === 'win' ? 'Beat' : 'Lost to'} ${detail.opponent} (${cleanOpponentRank}) ${sign}${detail.points.toFixed(2)}pts (Day ${detail.day})<br>`;
+                            });
+                            upsetText += '</small>';
+                        }
+                    }
+
+                    const rank = parseRank(r.rank);
+                    const multiplier = getRankMultiplier(rank);
+                    const echteScore = r.score * multiplier;
+
+                    // Format rank display - remove numbers for sanyaku
+                    let displayRank = r.rank;
+                    if (rank.type === 'Yokozuna' || rank.type === 'Ozeki' || rank.type === 'Sekiwake' || rank.type === 'Komusubi') {
+                        displayRank = rank.type;
+                    }
+
+                    html += `<tr><td>${r.shikona}</td><td>${displayRank}</td><td>${r.score.toFixed(2)}</td><td>${r.wins}</td><td>${bonusText}</td><td>${upsetText}</td><td>${echteScore.toFixed(2)} (×${multiplier.toFixed(1)})</td></tr>`;
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (e) {
+                container.innerHTML = `<p>Error loading scores: ${e.message}</p>`;
+                upsetContainer.innerHTML = '';
+            }
+        }
+        // Show scores on page load and when selector changes
+        document.addEventListener('DOMContentLoaded', function () {
+            populateScoreDaySelector();
+            const scoreDaySelect = document.getElementById('score-day-select');
+            fetchAndShowScores(Number(scoreDaySelect.value));
+            scoreDaySelect.addEventListener('change', function () {
+                fetchAndShowScores(Number(scoreDaySelect.value));
+            });
+        });
+    </script>
+</body>
+
+</html>
